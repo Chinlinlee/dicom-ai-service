@@ -1,0 +1,8 @@
+components:
+  responses:
+    vestibularSchwannomaRes:
+      description: OK
+      content:
+        application/dicom:
+          schema:
+            type: string

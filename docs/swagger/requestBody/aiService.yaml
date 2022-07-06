@@ -1,0 +1,25 @@
+components:
+  requestBodies:
+    vestibularSchwannomaBody:
+      description: The json body contain studyInstanceUID and 2 series corresponding to t1c adn t2 respectively
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/aiServiceVestibularSchwannoma"
+            
+  schemas:
+    aiServiceVestibularSchwannoma:
+      type: object
+      properties:
+        aiName:
+          type: string
+        studyInstanceUID:
+          type: string
+        seriesInstanceUID:
+          type: array
+          maxItems: 2
+          minItems: 2
+          items:
+            type: string
+      
