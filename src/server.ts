@@ -55,12 +55,16 @@ app.use((req, res, next) => {
     next();
 });
 app.engine("html", renderFile);
-import routes from "./routes";
-routes(app);
 
-http.createServer(app).listen(port, function () {
-    console.log(`http server is listening on port:${port}`);
-});
+import routes from "./routes";
+(async ()=> {    
+    await routes(app);
+    
+    http.createServer(app).listen(port, function () {
+        console.log(`http server is listening on port:${port}`);
+    });
+})();
+
 
 import { DICOMwebClient } from "./utils/DICOMweb/DICOMweb-Client";
 
