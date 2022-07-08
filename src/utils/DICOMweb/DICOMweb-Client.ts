@@ -5,6 +5,7 @@
 import axios from "axios";
 import { urlJoin } from "../url";
 import { multipartDecode } from "./message";
+import * as _ from "lodash";
 
 interface IDICOMwebClientOptions {
     url: string;
@@ -37,6 +38,7 @@ class DICOMwebClient {
     wadoURL: string;
     stowURL: string;
     wadoMode: string = "wado-rs";
+    static headers: any;
 
     constructor(options: IDICOMwebClientOptions) {
         this.baseURL = options.url;
@@ -68,11 +70,14 @@ class DICOMwebClient {
         if (options.wadoMode) {
             this.wadoMode = options.wadoMode;
         }
+
+        DICOMwebClient.headers = options.headers;
     }
 
     public static async getMultipartApplicationDicom(url: string) {
         let headers: any = {};
         headers.Accept = 'multipart/related; type="application/dicom"';
+        if (DICOMwebClient.headers) _.merge(headers, DICOMwebClient.headers);
         try {
             let { data } = await axios.get(url, {
                 responseType: "arraybuffer",
@@ -88,6 +93,7 @@ class DICOMwebClient {
     public static async getApplicationDicom(url: string) {
         let headers: any = {};
         headers.Accept = "application/dicom";
+        if (DICOMwebClient.headers) _.merge(headers, DICOMwebClient.headers);
         try {
             let { data } = await axios.get(url, {
                 responseType: "arraybuffer",
