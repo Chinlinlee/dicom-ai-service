@@ -21,17 +21,17 @@ const oauthPlugin = pluginsConfig.oauth;
 export const isOAuthLogin = async function (req: Request, res: Response, next: NextFunction) {
     // 如果開啟 ENABLE_OAUTH_LOGIN
     if (oauthPlugin.enable) {
-        console.log(req.query);
         if (
             req.headers["authorization"] != undefined ||
             req.query.access_token != undefined
         ) {
-            console.log("OAUTH狀態:有access token");
+            console.log("OAUTH status: has access token");
             DICOMwebClient.headers["Authorization"] = req.headers["authorization"] || req.query.access_token;
             let isTokenValid = await verifyOAuthAccessToken(req);
 
             // 把query放回去...
-            req.query = req.session.oriQuery;
+            if (req.session.oriQuery) req.query = req.session.oriQuery;
+            
             if (isTokenValid == true) {
                 return next();
             }
@@ -44,13 +44,13 @@ export const isOAuthLogin = async function (req: Request, res: Response, next: N
                 );
         } else if (req.query.code != undefined) {
             // 如果有Auth code 就試試看跟OAuth請求token
-            console.log("OAUTH狀態:有auth code");
+            console.log("OAUTH status: has auth code");
             console.log("auth code=" + req.query.code);
             await requestOAuthToken(req, res);
             return;
         } // 如果連code都沒
         else {
-            console.log("OAUTH狀態:都沒有");
+            console.log("OAUTH status: missing token nad auth code");
             await redirectToOAuthLoginPage(req, res);
             return;
         }
@@ -74,7 +74,6 @@ async function verifyOAuthAccessToken(req: Request) {
         }
     };
 
-    console.log(req.body);
 
     // 檢查 token 是否 放在 HTTP Header 裡面的 authorization 欄位
     if (req.headers["authorization"] != undefined) {
@@ -84,10 +83,6 @@ async function verifyOAuthAccessToken(req: Request) {
     } else if (req.session.access_token) {
         options.headers["Authorization"] = "Bearer " + req.session.access_token;
     }
-    console.log(req.query);
-
-    // 沒有放就是沒有token
-    console.log("token=" + options.headers["Authorization"]);
 
     // 如果有token 則將從headers拿到的token丟給oauth server做驗證
     if (options.headers["Authorization"] != "none") {
@@ -122,7 +117,7 @@ async function verifyOAuthAccessToken(req: Request) {
 async function requestOAuthToken(req: Request, res: Response) {
     // 重新導回的網址
     let theUrl = req.originalUrl;
-    console.log("原網址:" + req.originalUrl);
+    console.log("Original URL: " + req.originalUrl);
 
     // 移除掉OAuth給我們的2個參數
     theUrl = removeURLParameter(
@@ -163,7 +158,6 @@ async function requestOAuthToken(req: Request, res: Response) {
             // 資料傳輸結束
             response.on("end", function () {
                 //有取得到token就重新來一次
-                console.log(JSON.parse(result));
                 let resultObj = JSON.parse(result);
                 if (resultObj["access_token"] != undefined) {
                     req.session.access_token = resultObj["access_token"];
@@ -171,8 +165,6 @@ async function requestOAuthToken(req: Request, res: Response) {
                     res.set({
                         authorization: `Bearer ${resultObj["access_token"]}`
                     });
-                    //console.log("利用Auth Code取得了Token=" + resultObj["access_token"]);
-                    //console.log("導回網址="+ theUrl + `?access_token=${resultObj["access_token"]}`);
                     res.redirect(
                         theUrl + `?access_token=${resultObj["access_token"]}`
                     );
@@ -193,7 +185,7 @@ async function redirectToOAuthLoginPage(req: Request, res: Response) {
     // 可能keycloak有點bug，會遺失掉放在網址的參數，我們這邊從先把query的Parameters存在session...。
     let _theUrl = req.originalUrl.split("?")[0];
     console.log(
-        "OAuth2轉址位址:" +
+        "OAuth2 redirect from:" +
             `${oauthPlugin.http}://${req.hostname}${_theUrl}`
     );
     req.session.oriQuery = req.query;
