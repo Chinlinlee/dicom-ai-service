@@ -50,7 +50,7 @@ export const isOAuthLogin = async function (req: Request, res: Response, next: N
             return;
         } // 如果連code都沒
         else {
-            console.log("OAUTH status: missing token nad auth code");
+            console.log("OAUTH status: missing token and auth code");
             await redirectToOAuthLoginPage(req, res);
             return;
         }

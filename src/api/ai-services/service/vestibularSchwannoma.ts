@@ -1,15 +1,15 @@
 import { AICaller, AICallerMode, IAICallerOption } from "./aiCaller";
-import { IAIServiceConfig } from "../../../models/ai-service.model";
+import { IAIModelConfig } from "../../../models/ai-service.model";
 import { AIDicomFilesRetriever } from "./dicomFileRetriever";
 import path from "path";
 
 //* The AI result is RTSS Dicom 
 //* Destination is in t2 series directory
 class VestibularSchwannomaAICaller {
-    aiConfig: IAIServiceConfig;
+    aiConfig: IAIModelConfig;
     aiDicomFilesRetriever: AIDicomFilesRetriever;
 
-    constructor(aiConfig: IAIServiceConfig) {
+    constructor(aiConfig: IAIModelConfig) {
         this.aiConfig = aiConfig;
         this.aiDicomFilesRetriever = new AIDicomFilesRetriever(aiConfig);
     }

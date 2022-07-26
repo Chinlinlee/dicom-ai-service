@@ -2,13 +2,13 @@ import { Request, Response } from "express";
 
 import path from "path";
 import { VestibularSchwannomaAICaller } from "../service/vestibularSchwannoma";
-import { IAIServiceConfig } from "../../../models/ai-service.model";
+import { IAIModelConfig } from "../../../models/ai-service.model";
 import { PythonShellError } from "python-shell";
 import fs from "fs";
 
 export default async function (req: Request, res: Response, next: Function) {
     try {
-        let aiConfig = req.body as IAIServiceConfig;
+        let aiConfig = req.body as IAIModelConfig;
 
         let aiCaller: VestibularSchwannomaAICaller = new VestibularSchwannomaAICaller(aiConfig);
         let seriesDirList = await aiCaller.execAI();

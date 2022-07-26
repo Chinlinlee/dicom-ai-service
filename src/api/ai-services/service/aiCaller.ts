@@ -1,6 +1,5 @@
 import { PythonShell, Options } from "python-shell";
 import path from "path";
-import { IAIServiceConfig } from "../../../models/ai-service.model";
 
 
 enum AICallerMode {
