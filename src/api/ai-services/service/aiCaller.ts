@@ -12,6 +12,7 @@ interface IAICallerOption {
     entryFile?: string;
     args?: string[];
     apiUrl?: string;
+    condaEnvName?: string;
 }
 
 class AICaller {

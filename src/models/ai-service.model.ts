@@ -18,7 +18,6 @@ interface IAIModelParamsInfo {
 interface IAIModelInfo {
     name: string;
     params: IAIModelParamsInfo;
-    condaEnvName?: string;
 }
 
 export {
