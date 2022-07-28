@@ -39,8 +39,11 @@ export const isOAuthLogin = async function (req: Request, res: Response, next: N
             // 否則就回401
             return res
                 .status(401)
-                .render(
-                    "html/errors/401.html"
+                .json(
+                    {
+                        isError: true,
+                        message: "Access Token is invalid"
+                    }
                 );
         } else if (req.query.code != undefined) {
             // 如果有Auth code 就試試看跟OAuth請求token
