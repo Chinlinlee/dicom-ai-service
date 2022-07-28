@@ -26,13 +26,13 @@ interface ICondaEnvs {
 }
 
 class AICallerConda {
-    private _envName: string;
+    private envName: string;
     constructor(envName: string) {
-        this._envName = envName;
+        this.envName = envName;
     }
 
     async getEnvPythonPath(): Promise<string> {
-        let envName = this._envName;
+        let envName = this.envName;
         return new Promise((resolve, reject) => {
             childProcess.exec(
                 "conda env list --json",
