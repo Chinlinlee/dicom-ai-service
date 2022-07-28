@@ -3,8 +3,7 @@ interface ISopInstanceUID {
     seriesInstanceUID: string;
 }
 
-interface IAIModelConfig {
-    aiName: string;
+interface IAIModelInput {
     studyInstanceUID: string;
     seriesInstanceUIDList?: string[];
     sopInstanceUIDList?: ISopInstanceUID[];
@@ -21,6 +20,6 @@ interface IAIModelInfo {
 }
 
 export {
-    IAIModelConfig,
+    IAIModelInput,
     IAIModelInfo
 };

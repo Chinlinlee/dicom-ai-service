@@ -1,4 +1,4 @@
-import { IAIModelConfig } from "../../../models/ai-service.model";
+import { IAIModelInput } from "../../../models/ai-service.model";
 import { dicomWebClient } from "../../../server";
 import { IRetrieveOptions } from "../../../utils/DICOMweb/DICOMweb-Client";
 import { parseDicom, DataSet } from "dicom-parser";
@@ -22,14 +22,14 @@ function getUIDs(dicomSet: DataSet) {
 }
 
 const dicomLevelMethodMap = {
-    "STUDY": async (aiConfig: IAIModelConfig) => {
+    "STUDY": async (aiConfig: IAIModelInput) => {
         let retrieveOptions: IRetrieveOptions = {
             studyInstanceUID: aiConfig.studyInstanceUID
         };
         let dicomFilesBufferArr = await dicomWebClient.retrieveStudy(retrieveOptions);
         return await AIDicomFilesRetriever.storeMultiDICOMFilesToLocal(dicomFilesBufferArr);
     },
-    "SERIES": async (aiConfig: IAIModelConfig) => {
+    "SERIES": async (aiConfig: IAIModelInput) => {
         let seriesFilesStoreDest: string[] = [];
         for (let i = 0; i < aiConfig.seriesInstanceUIDList!.length; i++) {
             let seriesInstanceUID: string = aiConfig.seriesInstanceUIDList![i];
@@ -43,7 +43,7 @@ const dicomLevelMethodMap = {
         }
         return seriesFilesStoreDest;
     },
-    "INSTANCES": async (aiConfig: IAIModelConfig) => {
+    "INSTANCES": async (aiConfig: IAIModelInput) => {
         let instancesFilesStoreDest: string[] = [];
         for (let i = 0; i < aiConfig.sopInstanceUIDList!.length; i++) {
             let seriesInstanceUID = aiConfig.seriesInstanceUIDList![i];
@@ -62,10 +62,10 @@ const dicomLevelMethodMap = {
     }
 };
 class AIDicomFilesRetriever {
-    aiConfig: IAIModelConfig;
+    aiConfig: IAIModelInput;
     dicomLevel:DICOMLevel;
 
-    constructor(aiConfig: IAIModelConfig) {
+    constructor(aiConfig: IAIModelInput) {
         this.aiConfig = aiConfig;
         this.dicomLevel = this.getDICOMLevelFromAIConfig();
     }
