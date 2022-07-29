@@ -24,6 +24,7 @@
         "express": "^4.16.3",
         "express-session": "^1.16.2",
         "glob": "^8.0.3",
+        "jsonpath-plus": "^7.0.0",
         "lodash": "^4.17.21",
         "mkdirp": "^1.0.4",
         "moment": "^2.24.0",
@@ -33,6 +34,7 @@
         "python-shell": "^3.0.1",
         "rootpath": "^0.1.2",
         "shorthash2": "^1.0.3",
+        "string-template-parser": "^1.2.6",
         "swagger-jsdoc": "^6.2.1"
     },
     "devDependencies": {

@@ -14,12 +14,8 @@ interface IAIModelParamsInfo {
     instanceCount: number;
 }
 
-interface IAIModelInfo {
-    name: string;
-    params: IAIModelParamsInfo;
-}
 
 export {
     IAIModelInput,
-    IAIModelInfo
+    IAIModelParamsInfo
 };

@@ -3,6 +3,10 @@
 /dist
 
 /src/config/config.ts
+/src/config/ai-service.config.ts
 /temp
 
 /src/plugins/config.ts
+
+/**/.idea
+/**/__pycache__
