@@ -14,11 +14,11 @@ enum AICallerMode {
 
 interface IAICallerOption {
     mode: AICallerMode;
-    entryFile?: string;
-    args?: string[];
-    apiUrl?: string;
-    outputPath?: string; // use for API mode, to store API response to specific path
-    condaEnvName?: string;
+    outputPath: string; //* The path of AI result, label DICOM file, e.g. GSPS, RTSS; or image file, e.g. jpg, png
+    entryFile?: string; //* Required when mode is conda or native
+    args?: string[]; //* Required when mode is conda or native
+    apiUrl?: string; //* Required when mode is api
+    condaEnvName?: string; //* Required when mode is conda
 }
 
 interface ICondaEnvs {
