@@ -7,6 +7,7 @@ import { ParsedString, parseStringTemplate } from 'string-template-parser';
 import { JSONPath } from "jsonpath-plus";
 
 interface IAiWorkerArgs {
+    studyDir: string;
     seriesDirList: string[];
     instancesFilenameList: string[];
 }
@@ -14,6 +15,7 @@ interface IAiWorkerArgs {
 class AiWorker {
     aiDicomFilesRetriever: AIDicomFilesRetriever;
     args: IAiWorkerArgs = {
+        studyDir: "",
         seriesDirList: [],
         instancesFilenameList: []
     };
@@ -33,10 +35,17 @@ class AiWorker {
             if (!this.aiModelConfig.args && !this.aiModelConfig.entryFile)
             throw new Error(`Missing \`entryFile\`, \`args\` config in config/ai-service.config of ${this.aiModelConfig.name} ai model`);
         }
+
+        if (!Object.prototype.hasOwnProperty.call(this.aiModelConfig, "useCache")) this.aiModelConfig.useCache = false;
+        console.log("useCache: " +this.aiModelConfig.useCache);
     }
 
     async downloadDicomAndGetArgs(): Promise<void> {
-        let filesStoreDest = await this.aiDicomFilesRetriever.retrieveDICOMFiles();
+        let filesStoreDest = await this.aiDicomFilesRetriever.retrieveDICOMFiles(this.aiModelConfig.useCache);
+        let firstPathSplit = filesStoreDest[0].split("/");
+        firstPathSplit.pop();
+        firstPathSplit.pop();
+        this.args.studyDir = firstPathSplit.join("/");
         this.args.seriesDirList = filesStoreDest.reduce<string[]>((previous, current)=> {
             let dirname: string = path.dirname(current);
             if (!previous.includes(dirname)) {
