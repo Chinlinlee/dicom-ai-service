@@ -31,7 +31,7 @@ export const aiServiceConfig: IAIServiceConfig = {
                 "${seriesDirList[1]}"
             ],
             //* The path of label DICOM, e.g. GSPS, RTSS, ANN, Or maybe image file?
-            outputPath: "${seriesDirList[0]}/RTSS.dcm",
+            outputPaths: ["${seriesDirList[0]}/RTSS.dcm"],
             postFunction: (req: Request, res: Response) => {
                 let workingDir = res.locals.aiWorker.args.seriesDirList[0];
                 let aiGeneratedFiles = glob.sync(`**/!(*.dcm)`, {
