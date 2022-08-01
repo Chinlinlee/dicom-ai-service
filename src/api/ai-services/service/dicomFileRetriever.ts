@@ -6,6 +6,8 @@ import fsP from "fs/promises";
 import path from "path";
 import mkdirp from "mkdirp";
 import shortHash from "shorthash2";
+import { fileExists } from "../../../utils/fileExist";
+import glob from "glob";
 
 enum DICOMLevel {
     study = "STUDY",
@@ -21,15 +23,81 @@ function getUIDs(dicomSet: DataSet) {
     };
 }
 
+async function getCacheFiles(dir: string): Promise<string[]> {
+    return new Promise( (resolve, reject) => {
+        glob("**/*.dcm", { cwd: dir }, function (err, files) {
+            if (err) return reject(err);
+            let filesFullFilename = files.map( file => 
+                path.join(dir, file)
+            );
+            return resolve(filesFullFilename);
+        });
+    })
+}
+
+async function checkCacheSeriesExist(aiConfig: IAIModelInput) {
+    let hashStudyInstanceUID = shortHash(aiConfig.studyInstanceUID);
+    let cacheFilePaths: string[] = [];
+    let tempExists = [];
+
+    for (let i = 0; i< aiConfig.seriesInstanceUIDList!.length; i++) {
+        let hashSeriesInstanceUID = shortHash(aiConfig.seriesInstanceUIDList![i]);
+        let cacheFilePath = path.join(
+            __dirname,
+            "../../../temp",
+            hashStudyInstanceUID,
+            hashSeriesInstanceUID
+        );
+        let cacheFiles = await getCacheFiles(cacheFilePath);
+        cacheFilePaths.push(...cacheFiles);
+        let isExist = await fileExists(cacheFilePath, {
+            includeDirectories: true
+        });
+        tempExists.push(isExist);
+    }
+    let everyCacheExist = tempExists.every(v => v);
+    return {
+        everyCacheExist: everyCacheExist,
+        cacheFilePaths: cacheFilePaths
+    };
+}
+
 const dicomLevelMethodMap = {
-    "STUDY": async (aiConfig: IAIModelInput) => {
+    STUDY: async (aiConfig: IAIModelInput, useCache: boolean) => {
+        if (useCache) {
+            let hashStudyInstanceUID = shortHash(aiConfig.studyInstanceUID);
+            let cacheFilePath = path.join(
+                __dirname,
+                "../../../temp",
+                hashStudyInstanceUID
+            );
+            let cacheExist = await fileExists(cacheFilePath, {
+                includeDirectories: true
+            });
+            if (cacheExist) {
+                console.log(`The cache study DICOM files folder exists`);
+                return await getCacheFiles(cacheFilePath);
+            }
+        }
+        
         let retrieveOptions: IRetrieveOptions = {
             studyInstanceUID: aiConfig.studyInstanceUID
         };
-        let dicomFilesBufferArr = await dicomWebClient.retrieveStudy(retrieveOptions);
-        return await AIDicomFilesRetriever.storeMultiDICOMFilesToLocal(dicomFilesBufferArr);
+        let dicomFilesBufferArr = await dicomWebClient.retrieveStudy(
+            retrieveOptions
+        );
+        return await AIDicomFilesRetriever.storeMultiDICOMFilesToLocal(
+            dicomFilesBufferArr
+        );
     },
-    "SERIES": async (aiConfig: IAIModelInput) => {
+    SERIES: async (aiConfig: IAIModelInput, useCache: boolean) => {
+        if (useCache) {
+            let cacheExist = await checkCacheSeriesExist(aiConfig);
+            if (cacheExist.everyCacheExist) {
+                return cacheExist.cacheFilePaths;
+            }
+        }
+        
         let seriesFilesStoreDest: string[] = [];
         for (let i = 0; i < aiConfig.seriesInstanceUIDList!.length; i++) {
             let seriesInstanceUID: string = aiConfig.seriesInstanceUIDList![i];
@@ -37,25 +105,60 @@ const dicomLevelMethodMap = {
                 studyInstanceUID: aiConfig.studyInstanceUID,
                 seriesInstanceUID: seriesInstanceUID
             };
-            let dicomFilesBufferArr = await dicomWebClient.retrieveSeries(retrieveOptions);
-            let destList = await AIDicomFilesRetriever.storeMultiDICOMFilesToLocal(dicomFilesBufferArr);
+            let dicomFilesBufferArr = await dicomWebClient.retrieveSeries(
+                retrieveOptions
+            );
+            let destList =
+                await AIDicomFilesRetriever.storeMultiDICOMFilesToLocal(
+                    dicomFilesBufferArr
+                );
             seriesFilesStoreDest.push(...destList);
         }
         return seriesFilesStoreDest;
     },
-    "INSTANCES": async (aiConfig: IAIModelInput) => {
+    INSTANCES: async (aiConfig: IAIModelInput, useCache: boolean) => {
+        if (useCache) {
+            let hashStudyInstanceUID = shortHash(aiConfig.studyInstanceUID);
+            let cacheFilePaths: string[] = [];
+            let everyCacheExist = aiConfig.sopInstanceUIDList?.map(async (v) => {
+                let hashSeriesInstanceUID = shortHash(v.seriesInstanceUID);
+                let hashInstanceInstanceUID = shortHash(v.sopInstanceUID);
+                let cacheFilePath = path.join(
+                    __dirname,
+                    "../../../temp",
+                    hashStudyInstanceUID,
+                    hashSeriesInstanceUID,
+                    hashInstanceInstanceUID
+                );
+                cacheFilePaths.push(cacheFilePath);
+                return await fileExists(cacheFilePath, {
+                    includeDirectories: true
+                });
+            }).every(v => v);
+            if (everyCacheExist && useCache) {
+                console.log(`The cache instance DICOM files folder exists`);
+                return cacheFilePaths;
+            }
+        }
+        
+
         let instancesFilesStoreDest: string[] = [];
         for (let i = 0; i < aiConfig.sopInstanceUIDList!.length; i++) {
-            let seriesInstanceUID = aiConfig.seriesInstanceUIDList![i];
+            let seriesInstanceUID =
+                aiConfig.sopInstanceUIDList![i].seriesInstanceUID;
             let sopInstanceUID = aiConfig.sopInstanceUIDList![i].sopInstanceUID;
             let retrieveOptions: IRetrieveOptions = {
                 studyInstanceUID: aiConfig.studyInstanceUID,
                 seriesInstanceUID: seriesInstanceUID,
                 sopInstanceUID: sopInstanceUID
-            }
+            };
 
-            let dicomFileBuffer = await dicomWebClient.retrieveInstance(retrieveOptions);
-            let dest = await AIDicomFilesRetriever.storeDICOMFileToLocal(dicomFileBuffer);
+            let dicomFileBuffer = await dicomWebClient.retrieveInstance(
+                retrieveOptions
+            );
+            let dest = await AIDicomFilesRetriever.storeDICOMFileToLocal(
+                dicomFileBuffer
+            );
             instancesFilesStoreDest.push(dest);
         }
         return instancesFilesStoreDest;
@@ -63,7 +166,7 @@ const dicomLevelMethodMap = {
 };
 class AIDicomFilesRetriever {
     aiConfig: IAIModelInput;
-    dicomLevel:DICOMLevel;
+    dicomLevel: DICOMLevel;
 
     constructor(aiConfig: IAIModelInput) {
         this.aiConfig = aiConfig;
@@ -71,21 +174,31 @@ class AIDicomFilesRetriever {
     }
 
     private getDICOMLevelFromAIConfig() {
-        if (this.aiConfig.seriesInstanceUIDList && this.aiConfig.sopInstanceUIDList) {
-            if (this.aiConfig.seriesInstanceUIDList.length > 0 && this.aiConfig.sopInstanceUIDList.length > 0 )
-            return DICOMLevel.instances;
+        if (
+            this.aiConfig.seriesInstanceUIDList &&
+            this.aiConfig.sopInstanceUIDList
+        ) {
+            if (
+                this.aiConfig.seriesInstanceUIDList.length > 0 &&
+                this.aiConfig.sopInstanceUIDList.length > 0
+            )
+                return DICOMLevel.instances;
         }
         if (this.aiConfig.seriesInstanceUIDList) {
             if (this.aiConfig.seriesInstanceUIDList.length > 0)
-            return DICOMLevel.series;
+                return DICOMLevel.series;
         }
         return DICOMLevel.study;
     }
 
-    public static async storeMultiDICOMFilesToLocal(bufferArr: Buffer[]): Promise<string[]> {
+    public static async storeMultiDICOMFilesToLocal(
+        bufferArr: Buffer[]
+    ): Promise<string[]> {
         let filesDestList: string[] = [];
-        for(let dicomFileBuffer of bufferArr) {
-            let fileDest = await AIDicomFilesRetriever.storeDICOMFileToLocal(dicomFileBuffer);
+        for (let dicomFileBuffer of bufferArr) {
+            let fileDest = await AIDicomFilesRetriever.storeDICOMFileToLocal(
+                dicomFileBuffer
+            );
             filesDestList.push(fileDest);
         }
         return filesDestList;
@@ -96,18 +209,24 @@ class AIDicomFilesRetriever {
             untilTag: "x00220001"
         });
         let uidObj = getUIDs(dicomSet);
-        let storeFileDest = path.join(__dirname, "../../../temp", shortHash(uidObj.seriesInstanceUID), `${shortHash(uidObj.sopInstanceUID)}.dcm`);
+        let storeFileDest = path.join(
+            __dirname,
+            "../../../temp",
+            shortHash(uidObj.studyInstanceUID),
+            shortHash(uidObj.seriesInstanceUID),
+            `${shortHash(uidObj.sopInstanceUID)}.dcm`
+        );
         mkdirp.sync(path.dirname(storeFileDest));
         await fsP.writeFile(storeFileDest, buffer);
         return storeFileDest;
     }
 
-    public async retrieveDICOMFiles() {
-        return await dicomLevelMethodMap[this.dicomLevel](this.aiConfig);
+    public async retrieveDICOMFiles(useCache = false) {
+        return await dicomLevelMethodMap[this.dicomLevel](
+            this.aiConfig,
+            useCache
+        );
     }
 }
 
-
-export {
-    AIDicomFilesRetriever
-};
+export { AIDicomFilesRetriever };
