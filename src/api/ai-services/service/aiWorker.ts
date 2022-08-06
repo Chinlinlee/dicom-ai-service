@@ -7,6 +7,8 @@ import { ParsedString, parseStringTemplate } from "string-template-parser";
 import { JSONPath } from "jsonpath-plus";
 import glob from "glob";
 import lodash from "lodash";
+import { FormData } from "formdata-node";
+import { fileFromPath } from "formdata-node/file-from-path";
 
 interface IAiWorkerArgs {
     studyDir: string;
@@ -39,6 +41,7 @@ class AiWorker {
                 
             this.setDefaultApiMode();
             this.checkApiConfig();
+            this.parseApiRequestBody();
         } else if (this.aiModelConfig.mode === AICallerMode.conda) {
             if (
                 !this.aiModelConfig.args &&
@@ -156,6 +159,20 @@ class AiWorker {
         ];
         this.aiModelConfig.outputPaths = concatArray;
         return this.aiModelConfig.outputPaths;
+    }
+
+    private async parseApiRequestBody() {
+        if (this.aiModelConfig.apiMethod === "POST" &&
+            Object.prototype.hasOwnProperty.call(this.aiModelConfig, "apiRequestBody")) {
+
+            if (lodash.isString(this.aiModelConfig.apiRequestBody)) {
+                let filenameTemplateStr = this.aiModelConfig.apiRequestBody;
+                let apiRequestFilename = this.replaceStrTemplate(filenameTemplateStr);
+                let formData = new FormData();
+                formData.set("file", fileFromPath(apiRequestFilename));
+                this.aiModelConfig.apiRequestBody = formData;
+            }
+        }
     }
 
     async exec() {

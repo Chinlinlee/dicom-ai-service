@@ -30,7 +30,7 @@ interface IAICallerOption {
     args?: string[]; //* Required when mode is conda or native
     apiUrl?: string; //* Required when mode is api
     apiMethod?: "GET" | "POST"; //* Default: get
-    apiRequestBody?: any;
+    apiRequestBody?: any; //string for reading path's file or JSON body
     apiNextFunction?: (response: AxiosResponse<any, any>) => void;
     apiRequestConfig?: AxiosRequestConfig;
     condaEnvName?: string; //* Required when mode is conda
