@@ -3,15 +3,8 @@ import { IAICallerOption, AICallerMode } from "../api/ai-services/service/aiCall
 import path from "path";
 import glob from "glob";
 import fs from "fs";
-
-interface IAIModelConfig extends IAICallerOption{
-    name: string;
-    postFunction?: Function;
-}
-
-interface IAIServiceConfig {
-    services: IAIModelConfig[];
-}
+import { AiWorker } from "../api/ai-services/service/aiWorker";
+import { IAIModelConfig, IAIServiceConfig } from "../models/ai-service.config";
 
 export const aiServiceConfig: IAIServiceConfig = {
     
@@ -46,8 +39,4 @@ export const aiServiceConfig: IAIServiceConfig = {
             }
         }
     ]
-};
-
-export {
-    IAIModelConfig
 };

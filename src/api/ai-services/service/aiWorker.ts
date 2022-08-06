@@ -1,8 +1,8 @@
-import { AICaller, AICallerMode, IAICallerOption } from "./aiCaller";
+import { AICaller, AICallerMode } from "./aiCaller";
 import { IAIModelInput } from "../../../models/ai-service.model";
 import { AIDicomFilesRetriever } from "./dicomFileRetriever";
 import path from "path";
-import { IAIModelConfig } from "../../../config/ai-service.config";
+import { IAIModelConfig } from "../../../models/ai-service.config";
 import { ParsedString, parseStringTemplate } from "string-template-parser";
 import { JSONPath } from "jsonpath-plus";
 import glob from "glob";
@@ -26,9 +26,9 @@ class AiWorker {
         public aiInput: IAIModelInput,
         public aiModelConfig: IAIModelConfig
     ) {
-        this.aiInput = {...aiInput};
+        this.aiInput = { ...aiInput };
         this.aiDicomFilesRetriever = new AIDicomFilesRetriever(aiInput);
-        this.aiModelConfig = {...aiModelConfig};
+        this.aiModelConfig = { ...aiModelConfig };
 
         // Check the required field for AI caller mode
         if (this.aiModelConfig.mode === AICallerMode.api) {
@@ -36,6 +36,9 @@ class AiWorker {
                 throw new Error(
                     `Missing \`apiUrl\` config in config/ai-service.config of ${this.aiModelConfig.name} ai model`
                 );
+                
+            this.setDefaultApiMode();
+            this.checkApiConfig();
         } else if (this.aiModelConfig.mode === AICallerMode.conda) {
             if (
                 !this.aiModelConfig.args &&
@@ -60,6 +63,22 @@ class AiWorker {
         )
             this.aiModelConfig.useCache = false;
         console.log("useCache: " + this.aiModelConfig.useCache);
+    }
+    
+    private setDefaultApiMode() {
+        this.aiModelConfig.apiMethod = Object.prototype.hasOwnProperty.call(
+            this.aiModelConfig,
+            "apiMethod"
+        )
+            ? this.aiModelConfig.apiMethod
+            : "GET";
+    }
+
+    private checkApiConfig() {
+        if (this.aiModelConfig.apiMethod === "POST") {
+            if (!Object.prototype.hasOwnProperty.call(this.aiModelConfig, "apiRequestBody"))
+                throw new Error("Missing request body for POST AI models API");
+        }
     }
 
     async downloadDicomAndGetArgs(): Promise<void> {
@@ -126,9 +145,15 @@ class AiWorker {
                 return parsedStr;
             })
         );
-        
-        this.aiModelConfig.outputPaths = lodash.dropWhile(this.aiModelConfig.outputPaths, v => v.includes("*"));
-        let concatArray = [...this.aiModelConfig.outputPaths, ...pathsFromWildcard];
+
+        this.aiModelConfig.outputPaths = lodash.dropWhile(
+            this.aiModelConfig.outputPaths,
+            (v) => v.includes("*")
+        );
+        let concatArray = [
+            ...this.aiModelConfig.outputPaths,
+            ...pathsFromWildcard
+        ];
         this.aiModelConfig.outputPaths = concatArray;
         return this.aiModelConfig.outputPaths;
     }

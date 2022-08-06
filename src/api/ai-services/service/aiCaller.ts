@@ -1,9 +1,20 @@
+/**
+ * The file determines how to call the python script
+ * 1. Configuration
+ * 2. Enumerate the way to call python script
+ *     2.1 Native: python script.py arg1
+ *     2.2 Conda: /home/user/anaconda3/bin/python script.py arg1
+ *     2.3 API: 
+ *         2.3.1 GET http://aimodel.example.com/aiName?arg1=/home/user/series/instance/example.dcm
+ *         2.3.2 POST http://aimodel.example.com/aiName with form data  (work in progress)
+ *
+ * @author Chinlin-Lee a5566qq2581@gmail.com
+ */
+
 import { PythonShell, Options } from "python-shell";
 import path from "path";
 import childProcess from "child_process";
-import axios from "axios";
-import url from "url";
-import fsP from "fs/promises";
+import axios, { AxiosResponse, AxiosRequestConfig } from "axios";
 import os from "os";
 
 enum AICallerMode {
@@ -18,6 +29,10 @@ interface IAICallerOption {
     entryFile?: string; //* Required when mode is conda or native
     args?: string[]; //* Required when mode is conda or native
     apiUrl?: string; //* Required when mode is api
+    apiMethod?: "GET" | "POST"; //* Default: get
+    apiRequestBody?: any;
+    apiNextFunction?: (response: AxiosResponse<any, any>) => void;
+    apiRequestConfig?: AxiosRequestConfig;
     condaEnvName?: string; //* Required when mode is conda
 }
 
@@ -30,7 +45,13 @@ class AICallerConda {
     constructor(envName: string) {
         this.envName = envName;
     }
-
+    
+    /**
+     * Get the path of conda environment by `condaEnvName` value in configuration
+     * e.g. config `condaEnaName`: hello-world
+     * * In linux return "/home/user/anaconda3/envs/hello-world/bin/python"
+     * * In windows return "C:/ProgramData/Anaconda3/envs/hello-world/python"
+     */
     async getEnvPythonPath(): Promise<string> {
         let envName = this.envName;
         return new Promise((resolve, reject) => {
@@ -81,8 +102,16 @@ const aiCallerMethodLookUp = {
         });
     },
     API: async (options: IAICallerOption) => {
+        let callConfig = options.apiRequestConfig ? options.apiRequestConfig : undefined;
+        let response: any;
         try {
-            let { data } = await axios.get(options.apiUrl!);
+            if (options.apiMethod === "GET") {
+                response = await axios.get(options.apiUrl!, callConfig);
+            } else {
+                response= await axios.post(options.apiUrl!, options.apiRequestBody!, callConfig);
+            }
+            if (Object.prototype.hasOwnProperty.call(options, "apiNextFunction"))
+                options.apiNextFunction!(response.data);
             return true;
         } catch (e) {
             throw e;
