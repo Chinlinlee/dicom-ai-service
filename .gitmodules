@@ -1,0 +1,3 @@
+[submodule "src/ai-models/CheXNet-with-localization"]
+	path = src/ai-models/CheXNet-with-localization
+	url = https://github.com/Chinlinlee/CheXNet-with-localization.git
