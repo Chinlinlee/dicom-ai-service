@@ -94,14 +94,14 @@ flowchart LR
 property name | type | description
 ---------|----------|---------
  name | string | ai service name
- mode | [AICallerMode](###AICallerModel) | The mode for how to call AI model
+ mode | [AICallerMode](#aicallermodel) | The mode for how to call AI model
  entryFile | string | The path of AI model's python script. Please use the absolute path
  outputPaths | string[] | The paths of inference results.<br>AI services will return file according to this path<br>Support the wildcard path. e.g. /home/user/*.dcm
  args |  string[]  | The arguments for calling python script<br>⚠ Required when use `native`, `conda` mode
  apiUrl |  string  | The API url of AI model;The AI service HTTP request will call this url to get the response<br>⚠ Required when use `api` mode
  apiMethod | "GET" \| "POST" | The HTTP method that how to call AI model<br>ℹ For `api` mode, default: "GET"
  apiRequestBody | string\|JSON | The request body of POST method<br>❗❗ Working in progress<br>ℹ For `api` mode and `POST` method<br>string: read file from this string and embed it into FormData, field name: "file"<br>JSON: POST the JSON body
- apiNextFunction | (response: [AxiosResponse](https://axios-http.com/docs/res_schema)<any, any>) => void | The function after HTTP response is returned<br>ℹ For `api` mode
+ apiNextFunction | (response: [AxiosResponse](https://axios-http.com/docs/res_schema)<any, any>, aiArgs) => void | The function after HTTP response is returned<br>ℹ For `api` mode
  apiRequestConfig | [AxiosRequestConfig](https://axios-http.com/docs/req_config) | The HTTP request config<br>ℹ For `api` mode
  condaEnvName | string | The environment name of conda for calling AI model<br>ℹ For `conda` mode
  useCache | boolean | Use already cached DICOM files in local temporary directory
