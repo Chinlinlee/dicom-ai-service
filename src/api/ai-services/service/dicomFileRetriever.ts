@@ -62,6 +62,34 @@ async function checkCacheSeriesExist(aiConfig: IAIModelInput) {
     };
 }
 
+async function checkCacheInstanceExist(aiConfig: IAIModelInput) {
+    let hashStudyInstanceUID = shortHash(aiConfig.studyInstanceUID);
+    let cacheFilePaths: string[] = [];
+    let tempExists = [];
+
+    for (let i = 0; i< aiConfig.sopInstanceUIDList!.length; i++) {
+        let hashSeriesInstanceUID = shortHash(aiConfig.sopInstanceUIDList![i].seriesInstanceUID);
+        let hashInstanceInstanceUID = shortHash(aiConfig.sopInstanceUIDList![i].sopInstanceUID);
+        let cacheFilePath = path.join(
+            __dirname,
+            "../../../temp",
+            hashStudyInstanceUID,
+            hashSeriesInstanceUID,
+            `${hashInstanceInstanceUID}.dcm`
+        );
+        cacheFilePaths.push(cacheFilePath);
+        let isExist = await fileExists(cacheFilePath, {
+            includeDirectories: true
+        });
+        tempExists.push(isExist);
+    }
+    let everyCacheExist = tempExists.every(v => v);
+    return {
+        everyCacheExist: everyCacheExist,
+        cacheFilePaths: cacheFilePaths
+    };
+}
+
 const dicomLevelMethodMap = {
     STUDY: async (aiConfig: IAIModelInput, useCache: boolean) => {
         if (useCache) {
@@ -94,6 +122,7 @@ const dicomLevelMethodMap = {
         if (useCache) {
             let cacheExist = await checkCacheSeriesExist(aiConfig);
             if (cacheExist.everyCacheExist) {
+                console.log(`series cache found:${cacheExist.cacheFilePaths}`);
                 return cacheExist.cacheFilePaths;
             }
         }
@@ -118,26 +147,10 @@ const dicomLevelMethodMap = {
     },
     INSTANCES: async (aiConfig: IAIModelInput, useCache: boolean) => {
         if (useCache) {
-            let hashStudyInstanceUID = shortHash(aiConfig.studyInstanceUID);
-            let cacheFilePaths: string[] = [];
-            let everyCacheExist = aiConfig.sopInstanceUIDList?.map(async (v) => {
-                let hashSeriesInstanceUID = shortHash(v.seriesInstanceUID);
-                let hashInstanceInstanceUID = shortHash(v.sopInstanceUID);
-                let cacheFilePath = path.join(
-                    __dirname,
-                    "../../../temp",
-                    hashStudyInstanceUID,
-                    hashSeriesInstanceUID,
-                    hashInstanceInstanceUID
-                );
-                cacheFilePaths.push(cacheFilePath);
-                return await fileExists(cacheFilePath, {
-                    includeDirectories: true
-                });
-            }).every(v => v);
-            if (everyCacheExist && useCache) {
-                console.log(`The cache instance DICOM files folder exists`);
-                return cacheFilePaths;
+            let cacheExist = await checkCacheInstanceExist(aiConfig);
+            if (cacheExist.everyCacheExist) {
+                console.log(`instances cache found:${cacheExist.cacheFilePaths}`);
+                return cacheExist.cacheFilePaths;
             }
         }
         
