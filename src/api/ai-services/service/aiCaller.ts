@@ -16,6 +16,9 @@ import path from "path";
 import childProcess from "child_process";
 import axios, { AxiosResponse, AxiosRequestConfig } from "axios";
 import os from "os";
+import { IAiWorkerArgs } from "./aiWorker";
+import FormData from "form-data";
+import lodash from "lodash";
 
 enum AICallerMode {
     native = "NATIVE",
@@ -31,7 +34,7 @@ interface IAICallerOption {
     apiUrl?: string; //* Required when mode is api
     apiMethod?: "GET" | "POST"; //* Default: get
     apiRequestBody?: any; //string for reading path's file or JSON body
-    apiNextFunction?: (response: AxiosResponse<any, any>) => void;
+    apiNextFunction?: (response: AxiosResponse<any, any>, aiArgs: IAiWorkerArgs) => void;
     apiRequestConfig?: AxiosRequestConfig;
     condaEnvName?: string; //* Required when mode is conda
 }
@@ -41,8 +44,7 @@ interface ICondaEnvs {
 }
 
 class AICallerConda {
-    private envName: string;
-    constructor(envName: string) {
+    constructor(private envName: string) {
         this.envName = envName;
     }
     
@@ -82,7 +84,7 @@ class AICallerConda {
 }
 
 const aiCallerMethodLookUp = {
-    NATIVE: async (options: IAICallerOption) => {
+    NATIVE: async (options: IAICallerOption, aiArgs: IAiWorkerArgs) => {
         let pythonOptions: Options = {
             mode: "text",
             pythonOptions: ["-u"],
@@ -101,23 +103,26 @@ const aiCallerMethodLookUp = {
             );
         });
     },
-    API: async (options: IAICallerOption) => {
+    API: async (options: IAICallerOption, aiArgs: IAiWorkerArgs) => {
         let callConfig = options.apiRequestConfig ? options.apiRequestConfig : undefined;
         let response: any;
         try {
             if (options.apiMethod === "GET") {
                 response = await axios.get(options.apiUrl!, callConfig);
             } else {
-                response= await axios.post(options.apiUrl!, options.apiRequestBody!, callConfig);
+                if (options.apiRequestBody instanceof FormData) {
+                    lodash.set(callConfig!, "headers", options.apiRequestBody.getHeaders());
+                } 
+                response = await axios.post(options.apiUrl!, options.apiRequestBody!, callConfig);
             }
             if (Object.prototype.hasOwnProperty.call(options, "apiNextFunction"))
-                options.apiNextFunction!(response.data);
+                options.apiNextFunction!(response, aiArgs);
             return true;
         } catch (e) {
             throw e;
         }
     },
-    CONDA: async (options: IAICallerOption) => {
+    CONDA: async (options: IAICallerOption, aiArgs: IAiWorkerArgs) => {
         let aiCallerConda = new AICallerConda(options.condaEnvName!);
 
         let envPath: string = "";
@@ -152,14 +157,16 @@ const aiCallerMethodLookUp = {
 class AICaller {
     options: IAICallerOption;
 
-    constructor(options: IAICallerOption) {
+    constructor(options: IAICallerOption, private aiArgs: IAiWorkerArgs) {
         this.options = options;
+        this.aiArgs = aiArgs;
     }
 
     async exec() {
         try {
             let result = await aiCallerMethodLookUp[this.options.mode](
-                this.options
+                this.options,
+                this.aiArgs
             );
             return result;
         } catch (e) {
