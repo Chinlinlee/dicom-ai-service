@@ -9,6 +9,7 @@ import glob from "glob";
 import lodash from "lodash";
 import { FormData } from "formdata-node";
 import { fileFromPath } from "formdata-node/file-from-path";
+import { fileExistsSync } from "../../../utils/fileExist";
 
 interface IAiWorkerArgs {
     studyDir: string;
@@ -131,6 +132,7 @@ class AiWorker {
     }
 
     async getOutputPaths() {
+        console.log(this.aiModelConfig.outputPaths);
         let pathsFromWildcard: Array<string> = [];
         this.aiModelConfig.outputPaths = await Promise.all(
             this.aiModelConfig.outputPaths.map(async (file) => {
@@ -199,6 +201,7 @@ async function getOutputFilesFromWildcard(
     pattern: string
 ): Promise<Array<string>> {
     return new Promise((resolve, reject) => {
+        if (fileExistsSync(cwd, { includeDirectories: false })) cwd = path.dirname(cwd);
         glob(
             pattern,
             {

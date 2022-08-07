@@ -27,9 +27,9 @@ for (let service of aiServiceConfig.services) {
             `The \`name\` must be lowercase and concat with dashes and only accepts 5 dashes in string, ${service.name} is invalid`
         );
     if (service.postFunction)
-    router.post("/:aiName", postAiServiceRoute, service.postFunction as NextFunction)
+    router.post(`/${service.name}`, postAiServiceRoute, service.postFunction as NextFunction)
     else
-    router.post("/:aiName", postAiServiceRoute)
+    router.post(`/${service.name}`, postAiServiceRoute)
 }
 
 /**

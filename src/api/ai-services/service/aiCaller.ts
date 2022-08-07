@@ -126,7 +126,7 @@ const aiCallerMethodLookUp = {
         } catch (e) {
             throw e;
         }
-
+        
         let pythonOptions: Options = {
             mode: "text",
             pythonOptions: ["-u"],
@@ -134,6 +134,7 @@ const aiCallerMethodLookUp = {
             args: options.args,
             pythonPath: envPath
         };
+        console.log(`Run python: ${JSON.stringify(pythonOptions)}`);
 
         return new Promise((resolve, reject) => {
             PythonShell.run(

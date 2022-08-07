@@ -10,7 +10,7 @@ import { MultipartWriter } from "../../../utils/multipartWriter";
 export default async function (req: Request, res: Response, next: Function) {
     try {
         let aiInput = req.body as IAIModelInput;
-        let { aiName } = req.params;
+        let aiName = req.url.substring(1);
         
         // Find the config of AI model with specified name from path parameter
         let aiConfig = aiServiceConfig.services.find(v => v.name === aiName);
