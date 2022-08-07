@@ -7,9 +7,9 @@ import { ParsedString, parseStringTemplate } from "string-template-parser";
 import { JSONPath } from "jsonpath-plus";
 import glob from "glob";
 import lodash from "lodash";
-import { FormData } from "formdata-node";
-import { fileFromPath } from "formdata-node/file-from-path";
+import FormData  from "form-data";
 import { fileExistsSync } from "../../../utils/fileExist";
+import fs from "fs";
 
 interface IAiWorkerArgs {
     studyDir: string;
@@ -42,7 +42,6 @@ class AiWorker {
                 
             this.setDefaultApiMode();
             this.checkApiConfig();
-            this.parseApiRequestBody();
         } else if (this.aiModelConfig.mode === AICallerMode.conda) {
             if (
                 !this.aiModelConfig.args &&
@@ -105,6 +104,9 @@ class AiWorker {
             []
         );
         this.args.instancesFilenameList = filesStoreDest;
+        if (this.aiModelConfig.mode === AICallerMode.api) {
+            this.parseApiRequestBody();
+        }
     }
 
     private replaceStrTemplate(str: string) {
@@ -171,7 +173,7 @@ class AiWorker {
                 let filenameTemplateStr = this.aiModelConfig.apiRequestBody;
                 let apiRequestFilename = this.replaceStrTemplate(filenameTemplateStr);
                 let formData = new FormData();
-                formData.set("file", fileFromPath(apiRequestFilename));
+                formData.append("file", fs.createReadStream(apiRequestFilename));
                 this.aiModelConfig.apiRequestBody = formData;
             }
         }
@@ -180,7 +182,7 @@ class AiWorker {
     async exec() {
         await this.parseArgsOrApiUrl();
         try {
-            let aiCaller = new AICaller(this.aiModelConfig);
+            let aiCaller = new AICaller(this.aiModelConfig, this.args);
             let execResult = await aiCaller.exec();
             console.log(`The ai model response: ${execResult}`);
             return true;
@@ -216,4 +218,4 @@ async function getOutputFilesFromWildcard(
     });
 }
 
-export { AiWorker };
+export { AiWorker, IAiWorkerArgs };
