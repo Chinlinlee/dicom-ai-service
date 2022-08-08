@@ -1,8 +1,8 @@
 # DICOM-AI-Service
 The DICOM AI service use DICOMweb to retrieve DICOM files with specific StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID from PACS, and use the response such as DICOM file or series directory for calling specific AI model and finally get the inference output of AI model.
 
-## Process flowchart
-### AI-Service flowchart
+# Process flowchart
+## AI-Service flowchart
 ```mermaid
 flowchart LR
     user("User")
@@ -21,7 +21,7 @@ flowchart LR
     ai-service -- Inference Output file --> user
 ```
 
-## Configuration
+# Configuration
 <details>
     <summary>Mermaid visualization configuration</summary>
 
@@ -107,7 +107,7 @@ property name | type | description
  useCache | boolean | Use already cached DICOM files in local temporary directory
  postFunction | Function | The function after AI service response is returned
 
-### AICallerModel
+## AICallerModel
 name | description 
 ---------|----------
  native | Execute python script: "python main.py arg1 arg2"
@@ -115,7 +115,7 @@ name | description
  api | 1. Support API that response inference status: GET {baseUrl}?dcm_path=/home/user/image.dcm<br>2. Support POST single DICOM: POST {baseUrl} with request body (response ZIP or multipart)
 
 
-### Variables for args
+## Variables for args
 - studyDir
     - string of DICOM study path
     - usage: `${studyDir}`, when you want to input DICOM files from study level
@@ -146,3 +146,138 @@ name | description
             "/home/user/ai-service/dist/temp/series1/image2.dcm",
         ]
     ```
+
+# Example
+- Use AI model [CheXNet-with-localization](https://github.com/Chinlinlee/CheXNet-with-localization) for example usage and already in git submodule of this repository
+## 👀Every examples use same API below
+- POST `http://{{baseUrl}}/ai-service/chexnet`
+- Body:
+```json
+{
+    "studyInstanceUID": "1.2.826.0.1.3680043.10.511.3.80586946225741084510839785207096528",
+    "seriesInstanceUIDList": [
+        "1.2.826.0.1.3680043.10.511.3.76040288543480681843415823633831926"
+    ],
+    "sopInstanceUIDList": [
+        {
+            "seriesInstanceUID": "1.2.826.0.1.3680043.10.511.3.76040288543480681843415823633831926",
+            "sopInstanceUID": "ID_00b0e5a9f"
+        }
+    ]
+}
+```
+## Conda
+- `config/ai-service.config.ts`
+```typescript
+import { Request, Response, NextFunction } from "express";
+import { IAICallerOption, AICallerMode } from "../api/ai-services/service/aiCaller";
+import path from "path";
+import glob from "glob";
+import fs from "fs";
+import { AiWorker } from "../api/ai-services/service/aiWorker";
+import { IAIModelConfig, IAIServiceConfig } from "../models/ai-service.config";
+
+export const aiServiceConfig: IAIServiceConfig = {
+    services: [
+        {
+            //* ^[a-z0-9]+(-?[a-z0-9]+){0,5}$, must be lowercase and concatenate with dashes and only accepts 5 dashes in string
+            name: "chexnet",
+            //* The AI model's mode, expected to be AICallerMode.api | AICallerMode.conda | AICallerMode.native
+            mode: AICallerMode.conda,
+            //* Conda's environment name for using AI model
+            condaEnvName: "chexnet-with-localization",
+            //* The path of Python script that will be executed
+            entryFile: path.join(__dirname, "../ai-models/CheXNet-with-localization/denseNet_localization_cpu.py"),
+            //* Input specific instanceUID's DICOM file
+            args: [
+                "${instancesFilenameList[0]}"
+            ],
+            //* The paths of files that you want to response
+            //* Response multipart when contains multiple files
+            //* Response inference DICOM GSPS files 
+            outputPaths: [
+                "${seriesDirList[0]}/*gsps*.dcm"
+            ],
+            useCache: true
+        }
+    ]
+};
+```
+- with postman
+![example conda](docs/images/example_conda.png)
+
+## API (AI model work with "GET" API)
+- `config/ai-service.config.ts`
+```typescript
+import { Request, Response, NextFunction } from "express";
+import { IAICallerOption, AICallerMode } from "../api/ai-services/service/aiCaller";
+import path from "path";
+import glob from "glob";
+import fs from "fs";
+import { AiWorker } from "../api/ai-services/service/aiWorker";
+import { IAIModelConfig, IAIServiceConfig } from "../models/ai-service.config";
+
+export const aiServiceConfig: IAIServiceConfig = {
+    services: [
+        {
+            //* ^[a-z0-9]+(-?[a-z0-9]+){0,5}$, must be lowercase and concatenate with dashes and only accepts 5 dashes in string
+            name: "chexnet",
+            //* The AI model's mode, expected to be AICallerMode.api | AICallerMode.conda | AICallerMode.native
+            mode: AICallerMode.api,
+            //* The filename from specific instanceUID's DICOM in machine
+            apiUrl: "http://127.0.0.1:8000/ai_exec?filename=${instancesFilenameList[0]}",
+            apiMethod: "GET",
+            //* The paths of files that you want to response
+            //* Response multipart when contains multiple files
+            outputPaths: [
+                "${seriesDirList[0]}/*gsps*.dcm"
+            ],
+            useCache: true
+        }
+    ]
+};
+```
+
+## API (AI model work with "POST" API)
+- `config/ai-service.config.ts`
+```typescript
+import { Request, Response, NextFunction } from "express";
+import { IAICallerOption, AICallerMode } from "../api/ai-services/service/aiCaller";
+import path from "path";
+import glob from "glob";
+import fs from "fs";
+import { AiWorker } from "../api/ai-services/service/aiWorker";
+import { IAIModelConfig, IAIServiceConfig } from "../models/ai-service.config";
+
+export const aiServiceConfig: IAIServiceConfig = {
+    services: [
+        {
+            //* ^[a-z0-9]+(-?[a-z0-9]+){0,5}$, must be lowercase and concatenate with dashes and only accepts 5 dashes in string
+            name: "chexnet",
+            //* The AI model's mode, expected to be AICallerMode.api | AICallerMode.conda | AICallerMode.native
+            mode: AICallerMode.api,
+            apiUrl: "http://127.0.0.1:8000/ai_exec",
+            apiMethod: "POST",
+            apiRequestBody: "${instancesFilenameList[0]}",
+            //* Tell axios that response is array buffer
+            apiRequestConfig: {
+                responseType: "arraybuffer"
+            },
+            //* store the AI model responded buffer into file
+            apiNextFunction: (resData, aiArgs) => {
+                let instanceFilename = path.basename(aiArgs.instancesFilenameList[0]).replace(".dcm", "");
+                fs.writeFileSync(`${aiArgs.seriesDirList[0]}/${instanceFilename}.zip`, Buffer.from(resData.data));
+            },
+            //* The paths of files that you want to response
+            //* Response multipart when contains multiple files
+            //* Response zip file from previous step `apiNextFunction` stored ones
+            outputPaths: [
+                "${seriesDirList[0]}/*.zip"
+            ],
+            useCache: true
+        }
+    ]
+};
+```
+- with postman
+![example api post](docs/images/example_api_post.png)
