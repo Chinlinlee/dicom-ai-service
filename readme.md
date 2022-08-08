@@ -1,5 +1,5 @@
 # DICOM-AI-Service
-The DICOM AI service use DICOMweb to retrieve DICOM files with specific StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID from PACS, and use the response such as DICOM file or series directory for calling specific AI model and finally get the inference output of AI model.
+The DICOM AI service use DICOMweb to retrieve DICOM files with specific StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID from PACS, and use the responded contents such as DICOM file or series directory for calling specific AI model and finally get the inference output of AI model.
 
 # Process flowchart
 ## AI-Service flowchart
