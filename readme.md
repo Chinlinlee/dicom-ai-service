@@ -154,12 +154,9 @@ name | description
 - Body:
 ```json
 {
-    "studyInstanceUID": "1.2.826.0.1.3680043.10.511.3.80586946225741084510839785207096528",
-    "seriesInstanceUIDList": [
-        "1.2.826.0.1.3680043.10.511.3.76040288543480681843415823633831926"
-    ],
-    "sopInstanceUIDList": [
+    "DicomUidsList": [
         {
+            "studyInstanceUID": "1.2.826.0.1.3680043.10.511.3.80586946225741084510839785207096528",
             "seriesInstanceUID": "1.2.826.0.1.3680043.10.511.3.76040288543480681843415823633831926",
             "sopInstanceUID": "ID_00b0e5a9f"
         }
