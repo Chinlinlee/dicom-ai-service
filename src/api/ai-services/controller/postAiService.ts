@@ -6,6 +6,11 @@ import fs from "fs";
 import { AiWorker } from "../service/aiWorker";
 import { aiServiceConfig } from "../../../config/ai-service.config";
 import { MultipartWriter } from "../../../utils/multipartWriter";
+import { parseDicom } from "dicom-parser";
+import { inferenceCacheModel } from "../../../models/mongodb/model/inference-cache";
+import { getUIDs } from "../service/dicomFileRetriever";
+import shortHash from "shorthash2";
+import path from "path";
 
 export default async function (req: Request, res: Response, next: Function) {
     try {
@@ -20,19 +25,23 @@ export default async function (req: Request, res: Response, next: Function) {
         let aiWorker = new AiWorker(aiInput, aiConfig!);
         await aiWorker.downloadDicomAndGetArgs();
         console.log(aiWorker.args);
+        // Store downloaded DICOM filename
+        await storeFilesCache(aiWorker);
         let execStatus = await aiWorker.exec();
 
-        let outputPath = await aiWorker.getOutputPaths();
-        if (outputPath.length > 1) {
+        let outputPaths = await aiWorker.getOutputPaths();
+        // Update the inference cache with previous stored files cache
+        await storeInferenceCache(aiWorker, outputPaths);
+        if (outputPaths.length > 1) {
             console.log("response multiple files");
-            await writeFilesToResponse(outputPath, req, res);
+            await writeFilesToResponse(outputPaths, req, res);
             res.end();
         } else {
             console.log("response single file");
             res.writeHead(200, {
                 ContentType: "application/octet-stream"
             });
-            fs.createReadStream(outputPath.pop()!).pipe(res);
+            fs.createReadStream(outputPaths.pop()!).pipe(res);
         }
 
         res.locals.aiWorker = aiWorker;
@@ -64,3 +73,71 @@ async function writeFilesToResponse(paths: Array<string>, req: Request, res: Res
     }
 }
 
+
+async function getInferenceOutputsUid(outputPaths: string[]) {
+    let uidList = [];
+    for(let i = 0 ; i < outputPaths.length; i++) {
+        let outputPath = outputPaths[i];
+        let extension = path.extname(outputPath);
+        if (extension === ".dcm") {
+            let dicomFileBuffer = await fs.promises.readFile(outputPath);
+            let dicomDataSet = parseDicom(dicomFileBuffer);
+            let uidObj = getUIDs(dicomDataSet);
+            uidList.push(uidObj);
+        }
+    }
+    return uidList;
+}
+
+async function storeFilesCache(aiWorker: AiWorker) {
+    try {
+        let id = shortHash(JSON.stringify(aiWorker.aiInput));
+        console.log(`Store the downloaded file list into MongoDB, id: ${id}`);
+
+        let relativeFileList = aiWorker.args.instancesFilenameList.map( v => {
+            let filename = v.split("/temp").pop();
+            return path.join("temp", filename!);
+        });
+
+        let inferenceCache = await inferenceCacheModel.findOne({
+            id: id
+        });
+
+        if (!inferenceCache) {
+            let inferenceCacheDoc = new inferenceCacheModel({
+                id: id,
+                aiInput: [...aiWorker.aiInput.dicomUidsList],
+                fileList: relativeFileList,
+                alreadyInference: false
+            });
+            await inferenceCacheDoc.save();
+            return;
+        }
+
+        inferenceCache.aiInput = [...aiWorker.aiInput.dicomUidsList];
+        inferenceCache.fileList = relativeFileList;
+        await inferenceCache!.save();
+        return;
+    } catch(e) {
+        throw e;
+    }
+}
+
+async function storeInferenceCache(aiWorker: AiWorker, outputPaths: string[]) {
+    try {
+        let id = shortHash(JSON.stringify(aiWorker.aiInput));
+        console.log(`Store the inference cache into MongoDB, id: ${id}`);
+
+        let inferenceCache = await inferenceCacheModel.findOne({
+            id: id
+        });
+        if (!inferenceCache) return;
+
+        inferenceCache!.alreadyInference = true;
+        inferenceCache!.inferences = await getInferenceOutputsUid(outputPaths);
+
+        await inferenceCache.save();
+    } catch(e) {
+        throw e;
+    }
+}

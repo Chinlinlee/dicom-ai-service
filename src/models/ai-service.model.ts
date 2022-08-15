@@ -1,19 +1,13 @@
-interface ISopInstanceUID {
-    sopInstanceUID: string;
-    seriesInstanceUID: string;
-}
+import { IDicomUids } from "./dicom.model";
 
 interface IAIModelInput {
-    studyInstanceUID: string;
-    seriesInstanceUIDList?: string[];
-    sopInstanceUIDList?: ISopInstanceUID[];
+    dicomUidsList: IDicomUids[];
 }
 
 interface IAIModelParamsInfo {
     seriesCount: number;
     instanceCount: number;
 }
-
 
 export {
     IAIModelInput,

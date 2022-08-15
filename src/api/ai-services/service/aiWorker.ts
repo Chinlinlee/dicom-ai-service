@@ -35,27 +35,34 @@ class AiWorker {
 
         // Check the required field for AI caller mode
         if (this.aiModelConfig.mode === AICallerMode.api) {
-            if (!this.aiModelConfig.apiUrl)
+            if (!this.aiModelConfig.apiUrl) {
                 throw new Error(
                     `Missing \`apiUrl\` config in config/ai-service.config of ${this.aiModelConfig.name} ai model`
                 );
+            }
                 
             this.setDefaultApiMode();
             this.checkApiConfig();
         } else if (this.aiModelConfig.mode === AICallerMode.conda) {
+
             if (
                 !this.aiModelConfig.args &&
                 !this.aiModelConfig.condaEnvName &&
                 !this.aiModelConfig.entryFile
-            )
+            ) {
                 throw new Error(
                     `Missing \`entryFile\`, \`args\`, \`condaEnvName\` config in config/ai-service.config of ${this.aiModelConfig.name} ai model`
                 );
+            }
+
         } else if (this.aiModelConfig.mode === AICallerMode.native) {
-            if (!this.aiModelConfig.args && !this.aiModelConfig.entryFile)
+
+            if (!this.aiModelConfig.args && !this.aiModelConfig.entryFile) {
                 throw new Error(
                     `Missing \`entryFile\`, \`args\` config in config/ai-service.config of ${this.aiModelConfig.name} ai model`
                 );
+            }
+
         }
 
         if (
@@ -63,8 +70,9 @@ class AiWorker {
                 this.aiModelConfig,
                 "useCache"
             )
-        )
+        ) {
             this.aiModelConfig.useCache = false;
+        }
         console.log("useCache: " + this.aiModelConfig.useCache);
     }
     
@@ -84,6 +92,10 @@ class AiWorker {
         }
     }
 
+    /**
+     * 1. Download the DICOM files from PACS and separate all path of files to study, series, instance level.
+     * 2. Cache the info of downloaded DICOM files into MongoDB
+     */
     async downloadDicomAndGetArgs(): Promise<void> {
         let filesStoreDest =
             await this.aiDicomFilesRetriever.retrieveDICOMFiles(
@@ -109,6 +121,9 @@ class AiWorker {
         }
     }
 
+    /**
+     * Replace the user configure input/output template string to value of variable
+     */
     private replaceStrTemplate(str: string) {
         let parseStrTemplateResult = parseStringTemplate(str);
         for (let variable of parseStrTemplateResult.variables) {
@@ -121,6 +136,9 @@ class AiWorker {
         return str;
     }
 
+    /**
+     * Replace the template variable to value in args or api url
+     */
     async parseArgsOrApiUrl() {
         if (this.aiModelConfig.mode === AICallerMode.api) {
             this.aiModelConfig.apiUrl = this.replaceStrTemplate(
@@ -133,8 +151,11 @@ class AiWorker {
         }
     }
 
-    async getOutputPaths() {
-        console.log(this.aiModelConfig.outputPaths);
+    /**
+     * 
+     * Get array of replaced output path
+     */
+    async getOutputPaths(): Promise<string[]> {
         let pathsFromWildcard: Array<string> = [];
         this.aiModelConfig.outputPaths = await Promise.all(
             this.aiModelConfig.outputPaths.map(async (file) => {
@@ -217,5 +238,7 @@ async function getOutputFilesFromWildcard(
         );
     });
 }
+
+
 
 export { AiWorker, IAiWorkerArgs };
