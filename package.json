@@ -33,6 +33,8 @@
         "passport": "^0.6.0",
         "passport-local": "^1.0.0",
         "python-shell": "^3.0.1",
+        "request-compose": "^2.1.5",
+        "request-multipart": "^1.0.0",
         "rootpath": "^0.1.2",
         "shorthash2": "^1.0.3",
         "string-template-parser": "^1.2.6",

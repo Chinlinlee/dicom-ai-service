@@ -6,6 +6,8 @@ import axios from "axios";
 import { urlJoin } from "../url";
 import { multipartDecode } from "./message";
 import * as _ from "lodash";
+import * as storeUtils from "./store";
+
 
 interface IDICOMwebClientOptions {
     url: string;
@@ -205,6 +207,14 @@ class DICOMwebClient {
         } catch (e) {
             throw e;
         }
+    }
+
+    async storeInstance(filename: string) {
+        let url = urlJoin(`studies`, this.stowURL);
+        let response = await storeUtils.storeInstance(url, DICOMwebClient.headers, filename);
+        
+        if (response.res.statusCode == 200) return true;
+        return false;
     }
 }
 

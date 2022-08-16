@@ -11,6 +11,7 @@ import { inferenceCacheModel } from "../../../models/mongodb/model/inference-cac
 import { getUIDs } from "../service/dicomFileRetriever";
 import shortHash from "shorthash2";
 import path from "path";
+import { dicomWebClient } from "../../../server";
 
 export default async function (req: Request, res: Response, next: Function) {
     try {
@@ -32,6 +33,9 @@ export default async function (req: Request, res: Response, next: Function) {
         let outputPaths = await aiWorker.getOutputPaths();
         // Update the inference cache with previous stored files cache
         await storeInferenceCache(aiWorker, outputPaths);
+
+        if (aiConfig?.postInference) await storeInferenceToPacs(outputPaths);
+
         if (outputPaths.length > 1) {
             console.log("response multiple files");
             await writeFilesToResponse(outputPaths, req, res);
@@ -73,18 +77,27 @@ async function writeFilesToResponse(paths: Array<string>, req: Request, res: Res
     }
 }
 
-
-async function getInferenceOutputsUid(outputPaths: string[]) {
-    let uidList = [];
+function getInferenceOutputDicomFiles(outputPaths: string[]) {
+    let dicomFiles = [];
     for(let i = 0 ; i < outputPaths.length; i++) {
         let outputPath = outputPaths[i];
         let extension = path.extname(outputPath);
         if (extension === ".dcm") {
-            let dicomFileBuffer = await fs.promises.readFile(outputPath);
-            let dicomDataSet = parseDicom(dicomFileBuffer);
-            let uidObj = getUIDs(dicomDataSet);
-            uidList.push(uidObj);
+            dicomFiles.push(outputPath);
         }
+    }
+    return dicomFiles;
+}
+
+async function getInferenceOutputsUid(outputPaths: string[]) {
+    let uidList = [];
+    let dicomFiles = getInferenceOutputDicomFiles(outputPaths);
+    for(let i = 0 ; i < dicomFiles.length; i++) {
+        let dicomFile = dicomFiles[i];
+        let dicomFileBuffer = await fs.promises.readFile(dicomFile);
+        let dicomDataSet = parseDicom(dicomFileBuffer);
+        let uidObj = getUIDs(dicomDataSet);
+        uidList.push(uidObj);
     }
     return uidList;
 }
@@ -137,6 +150,20 @@ async function storeInferenceCache(aiWorker: AiWorker, outputPaths: string[]) {
         inferenceCache!.inferences = await getInferenceOutputsUid(outputPaths);
 
         await inferenceCache.save();
+    } catch(e) {
+        throw e;
+    }
+}
+
+
+async function storeInferenceToPacs(outputPaths: string[]) {
+    try {
+        let dicomFiles = getInferenceOutputDicomFiles(outputPaths);
+        for (let i = 0 ; i < dicomFiles!.length; i++) {
+            let dicomFile = dicomFiles[i];
+            console.log(`store inference DICOM to PACS ${dicomFile}`)
+            await dicomWebClient.storeInstance(dicomFile);
+        }
     } catch(e) {
         throw e;
     }

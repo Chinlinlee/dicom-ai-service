@@ -3,7 +3,7 @@ import { IAIModelInput } from "../../../models/ai-service.model";
 import { AIDicomFilesRetriever } from "./dicomFileRetriever";
 import path from "path";
 import { IAIModelConfig } from "../../../models/ai-service.config";
-import { ParsedString, parseStringTemplate } from "string-template-parser";
+import { parseStringTemplate } from "string-template-parser";
 import { JSONPath } from "jsonpath-plus";
 import glob from "glob";
 import lodash from "lodash";
