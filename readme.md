@@ -106,6 +106,7 @@ property name | type | description
  condaEnvName | string | The environment name of conda for calling AI model<br>ℹ For `conda` mode
  useCache | boolean | Use already cached DICOM files in local temporary directory
  postFunction | Function | The function after AI service response is returned
+ customCmd | string | The custom command string, use when no any mode for your use case
 
 ## AICallerModel
 name | description 
@@ -113,6 +114,7 @@ name | description
  native | Execute python script: "python main.py arg1 arg2"
  conda | Execute python script via conda environment's python<br>"/home/user/anaconda3/envs/envName/python main.py arg1 arg2" 
  api | 1. Support API that response inference status: GET {baseUrl}?dcm_path=/home/user/image.dcm<br>2. Support POST single DICOM: POST {baseUrl} with request body (response ZIP or multipart)
+ customCmd | Execute the command that you config, e.g. docker etc.
 
 
 ## Variables for args
@@ -146,6 +148,10 @@ name | description
             "/home/user/ai-service/dist/temp/series1/image2.dcm",
         ]
     ```
+### The relative path
+- studyRelativeDir
+- seriesRelativeDirList
+- instancesRelativeFilenameList
 
 # Example
 - Use AI model [CheXNet-with-localization](https://github.com/Chinlinlee/CheXNet-with-localization) for example usage and already in git submodule of this repository

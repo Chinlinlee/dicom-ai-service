@@ -23,20 +23,48 @@ import lodash from "lodash";
 enum AICallerMode {
     native = "NATIVE",
     api = "API",
-    conda = "CONDA"
+    conda = "CONDA",
+    customCmd = "CUSTOM_CMD"
 }
 
 interface IAICallerOption {
     mode: AICallerMode;
-    outputPaths: Array<string>; //* The path of AI result, label DICOM file, e.g. GSPS, RTSS; or image file, e.g. jpg, png
-    entryFile?: string; //* Required when mode is conda or native
-    args?: string[]; //* Required when mode is conda or native
-    apiUrl?: string; //* Required when mode is api
-    apiMethod?: "GET" | "POST"; //* Default: get
-    apiRequestBody?: any; //string for reading path's file or JSON body
+    /**
+     * The path of AI result, label DICOM file, e.g. GSPS, RTSS; or image file, e.g. jpg, png
+     */
+    outputPaths: Array<string>;
+    /**
+     * Required when mode is conda or native
+     */
+    entryFile?: string;
+    /**
+     * Required when mode is conda or native
+     */
+    args?: string[];
+    /**
+     * Required when mode is api
+     */
+    apiUrl?: string;
+    /**
+     * The API Http method, Default: get
+     */
+    apiMethod?: "GET" | "POST";
+    /**
+     * string for reading path's file or JSON body
+     */
+    apiRequestBody?: any;
     apiNextFunction?: (response: AxiosResponse<any, any>, aiArgs: IAiWorkerArgs) => void;
     apiRequestConfig?: AxiosRequestConfig;
-    condaEnvName?: string; //* Required when mode is conda
+    /**
+     * The conda environment name <br>
+     * Required when mode is conda
+     */
+    condaEnvName?: string;
+    /**
+     * 
+     * Required when mode is customCmd
+     */
+    customCmd?: string;
 }
 
 interface ICondaEnvs {
@@ -150,6 +178,36 @@ const aiCallerMethodLookUp = {
                     return resolve(result);
                 }
             );
+        });
+    },
+    CUSTOM_CMD: async (options: IAICallerOption, aiArgs: IAiWorkerArgs) => {
+
+        if (options.customCmd?.includes("${entryFile}")) {
+            options.customCmd?.replace("${entryFile}", options.entryFile!);
+        }
+
+        return new Promise((resolve, reject) => {
+            console.log(`Run custom command ${options.customCmd} ${options.args?.join(" ")}`);
+            let cmdOutput = "";
+            let cmdSplit = options.customCmd!.split(" ");
+            let mainCommand = cmdSplit!.shift();
+
+            let cmdSpawn = childProcess.spawn(mainCommand!, [...cmdSplit, ...options.args!]);
+            
+            cmdSpawn.stdout.setEncoding("utf-8");
+            cmdSpawn.stdout.on("data", (data) => {
+                cmdOutput += data;
+            });
+
+            cmdSpawn.stderr.setEncoding("utf-8");
+            cmdSpawn.stderr.on("data", (data) => {
+                cmdOutput += data;
+            });
+
+            cmdSpawn.on("close", (code) => {
+                if (code != 0) return reject(cmdOutput);
+                return resolve(cmdOutput);
+            });
         });
     }
 } as const;

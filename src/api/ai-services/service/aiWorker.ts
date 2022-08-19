@@ -15,6 +15,9 @@ interface IAiWorkerArgs {
     studyDir: string;
     seriesDirList: string[];
     instancesFilenameList: string[];
+    studyRelativeDir: string;
+    seriesRelativeDirList: string[];
+    instancesRelativeFilenameList: string[];
 }
 
 class AiWorker {
@@ -22,7 +25,10 @@ class AiWorker {
     args: IAiWorkerArgs = {
         studyDir: "",
         seriesDirList: [],
-        instancesFilenameList: []
+        instancesFilenameList: [],
+        studyRelativeDir: "",
+        seriesRelativeDirList: [],
+        instancesRelativeFilenameList: []
     };
 
     constructor(
@@ -63,6 +69,13 @@ class AiWorker {
                 );
             }
 
+        } else if (this.aiModelConfig.mode === AICallerMode.customCmd) {
+
+            if (!this.aiModelConfig.customCmd && !this.aiModelConfig.args) {
+                throw new Error(
+                    `Missing \`customCmd\`, \`entryFile\`, \`args\` config in config/ai-service.config of ${this.aiModelConfig.name} ai model`
+                );
+            }
         }
 
         if (
@@ -91,12 +104,26 @@ class AiWorker {
                 throw new Error("Missing request body for POST AI models API");
         }
     }
+    private setRelativePaths() {
+        let tempFolder = path.join(__dirname, "../../../temp");
 
+        this.args.studyRelativeDir = path.relative(tempFolder, this.args.studyDir);
+
+        this.args.seriesRelativeDirList = this.args.seriesDirList.map( v => 
+            path.relative(tempFolder, v)
+        );
+
+        this.args.instancesRelativeFilenameList = this.args.instancesFilenameList.map( v=> 
+            path.relative(tempFolder, v)
+        );
+    }
     /**
      * 1. Download the DICOM files from PACS and separate all path of files to study, series, instance level.
      * 2. Cache the info of downloaded DICOM files into MongoDB
      */
     async downloadDicomAndGetArgs(): Promise<void> {
+        
+
         let filesStoreDest =
             await this.aiDicomFilesRetriever.retrieveDICOMFiles(
                 this.aiModelConfig.useCache
@@ -105,6 +132,7 @@ class AiWorker {
         firstPathSplit.pop();
         firstPathSplit.pop();
         this.args.studyDir = firstPathSplit.join("/");
+
         this.args.seriesDirList = filesStoreDest.reduce<string[]>(
             (previous, current) => {
                 let dirname: string = path.dirname(current);
@@ -115,7 +143,10 @@ class AiWorker {
             },
             []
         );
+
         this.args.instancesFilenameList = filesStoreDest;
+        this.setRelativePaths();
+
         if (this.aiModelConfig.mode === AICallerMode.api) {
             this.parseApiRequestBody();
         }
