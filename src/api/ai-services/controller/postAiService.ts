@@ -40,12 +40,17 @@ export default async function (req: Request, res: Response, next: Function) {
             console.log("response multiple files");
             await writeFilesToResponse(outputPaths, req, res);
             res.end();
-        } else {
+        } else if (outputPaths.length === 1){
             console.log("response single file");
             res.writeHead(200, {
                 ContentType: "application/octet-stream"
             });
             fs.createReadStream(outputPaths.pop()!).pipe(res);
+        } else {
+            return res.status(400).json({
+                isError: true,
+                message: "Missing the output files, maybe `outputPaths` configuration incorrect?"
+            });
         }
 
         res.locals.aiWorker = aiWorker;
