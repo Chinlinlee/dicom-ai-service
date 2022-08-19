@@ -284,3 +284,33 @@ export const aiServiceConfig: IAIServiceConfig = {
 ```
 - with postman
 ![example api post](docs/images/example_api_post.png)
+
+## Custom command
+Use docker to exec the AI model
+- `config/ai-service.config.ts`
+```typescript
+import { Request, Response, NextFunction } from "express";
+import { IAICallerOption, AICallerMode } from "../api/ai-services/service/aiCaller";
+import path from "path";
+import glob from "glob";
+import fs from "fs";
+import { AiWorker } from "../api/ai-services/service/aiWorker";
+import { IAIModelConfig, IAIServiceConfig } from "../models/ai-service.config";
+
+export const aiServiceConfig: IAIServiceConfig = {
+    services: [
+        {
+            "name": "chexnet-docker-conda",
+            "mode": AICallerMode.customCmd,
+            customCmd: "sudo docker exec chexnet-with-localization /opt/conda/envs/chexnet-with-localization/bin/python /app/denseNet_localization_cpu.py",
+            args: [
+                "/dicomFiles/${instancesRelativeFilenameList[0]}"
+            ],
+            outputPaths: [
+                "${seriesDirList[0]}/*gsps*.dcm"
+            ],
+            useCache: true
+        }
+    ]
+};
+```
