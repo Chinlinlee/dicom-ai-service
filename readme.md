@@ -93,8 +93,8 @@ flowchart LR
 
 property name | type | description
 ---------|----------|---------
- name | string | ai service name
- mode | [AICallerMode](#aicallermodel) | The mode for how to call AI model
+ name | string | ai service name, Please use **a-z, A-Z, 0-9, hyphen(-);Maximum 5 hyphen**, and this name will use for route path of the API<br>e.g. chexnet-conda, API will be: http://example.com/chexnet-conda
+ mode | [AICallerMode](#aicallermode) | The mode for how to call AI model
  entryFile | string | The path of AI model's python script. Please use the absolute path
  outputPaths | string[] | The paths of inference results.<br>AI services will return file according to this path<br>Support the wildcard path. e.g. /home/user/*.dcm
  args |  string[]  | The arguments for calling python script<br>⚠ Required when use `native`, `conda` mode
@@ -108,7 +108,7 @@ property name | type | description
  postFunction | Function | The function after AI service response is returned
  customCmd | string | The custom command string, use when no any mode for your use case
 
-## AICallerModel
+## AICallerMode
 name | description 
 ---------|----------
  native | Execute python script: "python main.py arg1 arg2"
