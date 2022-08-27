@@ -1,3 +1,11 @@
+/**
+ * AI worker is for:
+ * 1. Check the AI service config
+ * 2. Parse args, apiUrl, outputPath from AI service config
+ * 3. Call the AI caller, if everything is OK
+ * @author Chinlin-Lee a5566qq2581@gmail.com
+ */
+
 import { AICaller, AICallerMode } from "./aiCaller";
 import { IAIModelInput } from "../../../models/ai-service.model";
 import { AIDicomFilesRetriever } from "./dicomFileRetriever";

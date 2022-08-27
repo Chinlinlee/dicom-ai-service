@@ -119,6 +119,7 @@ const aiCallerMethodLookUp = {
             scriptPath: path.dirname(options.entryFile!),
             args: options.args
         };
+        console.log(`Run python: ${JSON.stringify(pythonOptions)}`);
 
         return new Promise((resolve, reject) => {
             PythonShell.run(
@@ -134,13 +135,14 @@ const aiCallerMethodLookUp = {
     API: async (options: IAICallerOption, aiArgs: IAiWorkerArgs) => {
         let callConfig = options.apiRequestConfig ? options.apiRequestConfig : undefined;
         let response: any;
+        console.log(`Call AI model API, method: ${options.apiMethod}, url: ${options.apiUrl}, axios config: ${callConfig}`);
         try {
             if (options.apiMethod === "GET") {
                 response = await axios.get(options.apiUrl!, callConfig);
             } else {
                 if (options.apiRequestBody instanceof FormData) {
                     lodash.set(callConfig!, "headers", options.apiRequestBody.getHeaders());
-                } 
+                }
                 response = await axios.post(options.apiUrl!, options.apiRequestBody!, callConfig);
             }
             if (Object.prototype.hasOwnProperty.call(options, "apiNextFunction"))
@@ -228,7 +230,8 @@ class AICaller {
             );
             return result;
         } catch (e) {
-            throw e;
+            console.error(e);
+            throw new Error("The AI caller execute AI model failure");
         }
     }
 }
