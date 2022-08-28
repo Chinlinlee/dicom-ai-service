@@ -25,7 +25,6 @@ export default async function (req: Request, res: Response, next: Function) {
         
         let aiWorker = new AiWorker(aiInput, aiConfig!);
         await aiWorker.downloadDicomAndGetArgs();
-        console.log(aiWorker.args);
         // Store downloaded DICOM filename
         await storeFilesCache(aiWorker);
         let execStatus = await aiWorker.exec();
