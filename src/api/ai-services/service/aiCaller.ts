@@ -14,7 +14,7 @@
 import { PythonShell, Options } from "python-shell";
 import path from "path";
 import childProcess from "child_process";
-import axios, { AxiosResponse, AxiosRequestConfig } from "axios";
+import axios, { AxiosResponse, AxiosRequestConfig, Axios } from "axios";
 import os from "os";
 import { IAiWorkerArgs } from "./aiWorker";
 import FormData from "form-data";
@@ -134,8 +134,8 @@ const aiCallerMethodLookUp = {
     },
     API: async (options: IAICallerOption, aiArgs: IAiWorkerArgs) => {
         let callConfig = options.apiRequestConfig ? options.apiRequestConfig : undefined;
-        let response: any;
-        console.log(`Call AI model API, method: ${options.apiMethod}, url: ${options.apiUrl}, axios config: ${callConfig}`);
+        let response: AxiosResponse<any, any>;
+        console.log(`Call AI model API, method: ${options.apiMethod}, url: ${options.apiUrl}, axios config: ${JSON.stringify(callConfig)}`);
         try {
             if (options.apiMethod === "GET") {
                 response = await axios.get(options.apiUrl!, callConfig);
@@ -147,7 +147,7 @@ const aiCallerMethodLookUp = {
             }
             if (Object.prototype.hasOwnProperty.call(options, "apiNextFunction"))
                 options.apiNextFunction!(response, aiArgs);
-            return true;
+            return response.data;
         } catch (e) {
             throw e;
         }

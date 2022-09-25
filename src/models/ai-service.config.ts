@@ -21,6 +21,10 @@ interface IAIModelConfig extends IAICallerOption{
      * Store inference DICOM label to PACS
      */
     postInference?: boolean;
+    /**
+     * The inference is file or not. default: true
+     */
+    isFile?: boolean;
 }
 
 interface IAIServiceConfig {

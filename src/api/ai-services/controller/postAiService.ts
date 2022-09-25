@@ -27,29 +27,35 @@ export default async function (req: Request, res: Response, next: Function) {
         await aiWorker.downloadDicomAndGetArgs();
         // Store downloaded DICOM filename
         await storeFilesCache(aiWorker);
-        let execStatus = await aiWorker.exec();
+        let execResult = await aiWorker.exec();
 
-        let outputPaths = await aiWorker.getOutputPaths();
-        // Update the inference cache with previous stored files cache
-        await storeInferenceCache(aiWorker, outputPaths);
+        let isFile = Object.prototype.hasOwnProperty.call(aiConfig, "isFile") ? aiConfig?.isFile : false;
 
-        if (aiConfig?.postInference) await storeInferenceToPacs(outputPaths);
-
-        if (outputPaths.length > 1) {
-            console.log("response multiple files");
-            await writeFilesToResponse(outputPaths, req, res);
-            res.end();
-        } else if (outputPaths.length === 1){
-            console.log("response single file");
-            res.writeHead(200, {
-                ContentType: "application/octet-stream"
-            });
-            fs.createReadStream(outputPaths.pop()!).pipe(res);
+        if (isFile) {
+            let outputPaths = await aiWorker.getOutputPaths();
+            // Update the inference cache with previous stored files cache
+            await storeInferenceCache(aiWorker, outputPaths);
+    
+            if (aiConfig?.postInference) await storeInferenceToPacs(outputPaths);
+    
+            if (outputPaths.length > 1) {
+                console.log("response multiple files");
+                await writeFilesToResponse(outputPaths, req, res);
+                res.end();
+            } else if (outputPaths.length === 1){
+                console.log("response single file");
+                res.writeHead(200, {
+                    ContentType: "application/octet-stream"
+                });
+                fs.createReadStream(outputPaths.pop()!).pipe(res);
+            } else {
+                return res.status(400).json({
+                    isError: true,
+                    message: "Missing the output files, maybe `outputPaths` configuration incorrect?"
+                });
+            }
         } else {
-            return res.status(400).json({
-                isError: true,
-                message: "Missing the output files, maybe `outputPaths` configuration incorrect?"
-            });
+            res.send(execResult);
         }
 
         res.locals.aiWorker = aiWorker;

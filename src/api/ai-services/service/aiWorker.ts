@@ -245,7 +245,7 @@ class AiWorker {
             let aiCaller = new AICaller(this.aiModelConfig, this.args);
             let execResult = await aiCaller.exec();
             console.log(`The ai model response: ${execResult}`);
-            return true;
+            return execResult;
         } catch (e) {
             throw e;
         }
