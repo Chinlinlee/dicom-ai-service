@@ -18,6 +18,7 @@ import lodash from "lodash";
 import FormData  from "form-data";
 import { fileExistsSync } from "../../../utils/fileExist";
 import fs from "fs";
+import { URL } from "url";
 
 interface IAiWorkerArgs {
     studyDir: string;
@@ -241,6 +242,19 @@ class AiWorker {
 
     async exec() {
         await this.parseArgsOrApiUrl();
+
+        // append custom params from user request
+        if (this.aiModelConfig.mode === AICallerMode.api) {
+            if (Object.prototype.hasOwnProperty.call(this.aiInput, "params")) {
+                let apiUrlObj = new URL(this.aiModelConfig.apiUrl!);
+                for(let key in this.aiInput.params!) {
+                    let paramValue = this.aiInput.params[key];
+                    apiUrlObj.searchParams.append(key, paramValue);
+                }
+                this.aiModelConfig.apiUrl = apiUrlObj.href;
+            }
+        }
+
         try {
             let aiCaller = new AICaller(this.aiModelConfig, this.args);
             let execResult = await aiCaller.exec();
