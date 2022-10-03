@@ -3,7 +3,12 @@ export const pluginsConfig = {
         name: "oauth",
         enable: false,
         before: true,
-        routers: [],
+        routers: [
+            {
+                path: "/ai-service/*",
+                method: "post"
+            }
+        ],
         http: "https", // http | https
         host: "", //The oauth server hostname
         client_id: "", //The oauth client ID

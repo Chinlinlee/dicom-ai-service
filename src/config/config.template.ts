@@ -7,6 +7,7 @@ interface IMongoDBConfig {
     ports: number[];
     user: string;
     password: string;
+    authSource?: string;
 }
 
 
@@ -17,7 +18,7 @@ interface IServerConfig {
     [property: string]: any;
 }
 
-interface IGlobalConfig {
+export interface IGlobalConfig {
     mongodb: IMongoDBConfig;
     server: IServerConfig;
     dicomClient: IDICOMwebClientOptions;
@@ -30,7 +31,8 @@ export const config: IGlobalConfig = {
         hosts: [],
         ports: [],
         user: "",
-        password: ""
+        password: "",
+        authSource: "",
     },
     server: {
         host: "",
