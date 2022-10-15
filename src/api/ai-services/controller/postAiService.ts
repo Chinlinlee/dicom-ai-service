@@ -29,7 +29,7 @@ export default async function (req: Request, res: Response, next: Function) {
         await storeFilesCache(aiWorker);
         let execResult = await aiWorker.exec();
 
-        let isFile = Object.prototype.hasOwnProperty.call(aiConfig, "isFile") ? aiConfig?.isFile : false;
+        let isFile = Object.prototype.hasOwnProperty.call(aiConfig, "isFile") ? aiConfig?.isFile : true;
 
         if (isFile) {
             let outputPaths = await aiWorker.getOutputPaths();
@@ -45,7 +45,7 @@ export default async function (req: Request, res: Response, next: Function) {
             } else if (outputPaths.length === 1){
                 console.log("response single file");
                 res.writeHead(200, {
-                    ContentType: "application/octet-stream"
+                    "Content-Type": "application/octet-stream"
                 });
                 fs.createReadStream(outputPaths.pop()!).pipe(res);
             } else {
