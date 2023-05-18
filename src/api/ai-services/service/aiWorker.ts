@@ -111,6 +111,14 @@ class AiWorker {
         if (this.aiModelConfig.apiMethod === "POST") {
             if (!Object.prototype.hasOwnProperty.call(this.aiModelConfig, "apiRequestBody"))
                 throw new Error("Missing request body for POST AI models API");
+
+            if(this.aiModelConfig.apiRequestBody!.type === "json") {
+                if (!Object.prototype.hasOwnProperty.call(this.aiModelConfig.apiRequestBody, "value"))
+                    throw new Error("Missing `value` for json request body");
+            } else if (this.aiModelConfig.apiRequestBody!.type === "formData") {
+                if (!Object.prototype.hasOwnProperty.call(this.aiModelConfig.apiRequestBody, "formData"))
+                    throw new Error("Missing `formData` for form data request body");
+            }
         }
     }
     private setRelativePaths() {
@@ -230,12 +238,30 @@ class AiWorker {
         if (this.aiModelConfig.apiMethod === "POST" &&
             Object.prototype.hasOwnProperty.call(this.aiModelConfig, "apiRequestBody")) {
 
-            if (lodash.isString(this.aiModelConfig.apiRequestBody)) {
-                let filenameTemplateStr = this.aiModelConfig.apiRequestBody;
-                let apiRequestFilename = this.replaceStrTemplate(filenameTemplateStr);
-                let formData = new FormData();
-                formData.append("file", fs.createReadStream(apiRequestFilename));
-                this.aiModelConfig.apiRequestBody = formData;
+            if (this.aiModelConfig.apiRequestBody!.type === "json") {
+                // do nothing
+            } else if (this.aiModelConfig.apiRequestBody!.type === "formData") {
+                let formDataObj = new FormData();
+                for(let item of this.aiModelConfig.apiRequestBody!.formData!) {
+
+                    let parsedValue = this.replaceStrTemplate(item.value);
+                    if (lodash.isArray(parsedValue)) {
+
+                        for(let i = 0 ; i < parsedValue.length ;i++) {
+                            if (item.type === "file")
+                                formDataObj.append(item.field, fs.createReadStream(parsedValue[i]));
+                            else
+                                formDataObj.append(item.field, parsedValue[i]);
+                        }
+
+                    } else {
+                        
+                        formDataObj.append(item.field, fs.createReadStream(parsedValue));
+
+                    }
+                }
+
+                this.aiModelConfig.apiRequestBody!.formDataObj! = formDataObj;
             }
         }
     }
@@ -258,7 +284,7 @@ class AiWorker {
         try {
             let aiCaller = new AICaller(this.aiModelConfig, this.args);
             let execResult = await aiCaller.exec();
-            console.log(`The ai model response: ${execResult}`);
+            console.log(`The ai model response: ${JSON.stringify(execResult)}`);
             return execResult;
         } catch (e) {
             throw e;

@@ -27,6 +27,17 @@ enum AICallerMode {
     customCmd = "CUSTOM_CMD"
 }
 
+export interface IApiRequestBody {
+    type: "formData" | "json";
+    formData?: [{
+        field: string;
+        value: string;
+        type: "string" | "file"
+    }];
+    formDataObj?: FormData;
+    value?: JSON;
+}
+
 interface IAICallerOption {
     mode: AICallerMode;
     /**
@@ -52,7 +63,7 @@ interface IAICallerOption {
     /**
      * string for reading path's file or JSON body
      */
-    apiRequestBody?: any;
+    apiRequestBody?: IApiRequestBody;
     apiNextFunction?: (response: AxiosResponse<any, any>, aiArgs: IAiWorkerArgs) => void;
     apiRequestConfig?: AxiosRequestConfig;
     /**
@@ -140,14 +151,16 @@ const aiCallerMethodLookUp = {
             if (options.apiMethod === "GET") {
                 response = await axios.get(options.apiUrl!, callConfig);
             } else {
-                if (options.apiRequestBody instanceof FormData) {
-                    lodash.set(callConfig!, "headers", options.apiRequestBody.getHeaders());
+                if (options.apiRequestBody!.type === "formData") {
+                    lodash.set(callConfig!, "headers", options.apiRequestBody!.formDataObj!.getHeaders());
+                    response = await axios.post(options.apiUrl!, options.apiRequestBody!.formDataObj, callConfig);
+                } else if (options.apiRequestBody!.type === "json") {
+                    response = await axios.post(options.apiUrl!, options.apiRequestBody!.value, callConfig);
                 }
-                response = await axios.post(options.apiUrl!, options.apiRequestBody!, callConfig);
             }
             if (Object.prototype.hasOwnProperty.call(options, "apiNextFunction"))
-                options.apiNextFunction!(response, aiArgs);
-            return response.data;
+                options.apiNextFunction!(response!, aiArgs);
+            return response!.data;
         } catch (e) {
             throw e;
         }
