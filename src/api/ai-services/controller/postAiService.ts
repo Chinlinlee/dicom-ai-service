@@ -55,6 +55,9 @@ export default async function (req: Request, res: Response, next: Function) {
                 });
             }
         } else {
+            if (aiConfig?.contentType) {
+                res.set("Content-Type", aiConfig.contentType);
+            }
             res.send(execResult);
         }
 

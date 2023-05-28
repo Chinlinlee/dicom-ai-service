@@ -76,6 +76,7 @@ interface IAICallerOption {
      * Required when mode is customCmd
      */
     customCmd?: string;
+    contentType?: string;
 }
 
 interface ICondaEnvs {
